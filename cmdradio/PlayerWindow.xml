@@ -1,0 +1,18 @@
+﻿<Window Title="cmdradio" xmlns:x="http://consoleframework.org/xaml.xsd">
+  <Panel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <GroupBox Title="Genres">
+      <ComboBox ShownItemsCount="20"
+                SelectedItemIndex="{Binding Path=SelectedGenreIndex, Mode=OneWayToSource}"
+                Items="{Binding Path=Genres, Mode=OneWay}">
+      </ComboBox>
+    </GroupBox>
+    <GroupBox Title="Control">
+      <Panel Margin="1">
+        <Button Name="buttonPlay" Caption="Play" HorizontalAlignment="Stretch"></Button>
+        <Button Name="buttonPause" Caption="Pause" HorizontalAlignment="Stretch"></Button>
+        <Button Name="buttonStop" Caption="Stop" HorizontalAlignment="Stretch"></Button>
+        <Button Name="buttonExit" Caption="Exit" HorizontalAlignment="Stretch"></Button>
+      </Panel>
+    </GroupBox>
+  </Panel>
+</Window>

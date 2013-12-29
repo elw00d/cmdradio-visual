@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Text;
 using System.Media;
 using System.IO;
@@ -9,6 +10,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Linq;
 using System.Xml.Serialization;
+using Binding.Observables;
+using ConsoleFramework;
+using ConsoleFramework.Controls;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Un4seen.Bass;
@@ -17,17 +21,68 @@ namespace cmdfm
 {
     class Program
     {
+        class PlayerWindowModel : INotifyPropertyChanged
+        {
+            private ObservableList genres = new ObservableList( new ArrayList() );
+            public IObservableList Genres {
+                get {
+                    return genres;
+                }
+            }
+
+            private int selectedGenreIndex;
+            public int SelectedGenreIndex {
+                get { return selectedGenreIndex; }
+                set {
+                    if ( value != selectedGenreIndex ) {
+                        selectedGenreIndex = value;
+                        OnPropertyChanged( "SelectedGenreIndex" );
+                    }
+                }
+            }
+
+            public event PropertyChangedEventHandler PropertyChanged;
+
+            protected virtual void OnPropertyChanged( string propertyName ) {
+                PropertyChangedEventHandler handler = PropertyChanged;
+                if ( handler != null ) handler( this, new PropertyChangedEventArgs( propertyName ) );
+            }
+        }
+
         static void Main(string[] args)
         {
-            Player player = new Player();
-            string[] p = { };
-            Console.WriteLine("cmdradio v"+Player.VERSION+" by Mitrich Kasus.\nVisit http://cmdradio.org for details.\nFollow @cmdradio and +cmdradio for updates.\n");
-            Console.WriteLine("Type 'genre' to discover recent genres, 'help' to see available commands:");
-            if (args.Length > 0) player.ReadCmd(args);
-            while (player.working)
-            {
-                player.ReadCmd(p);
-            }
+            WindowsHost windowsHost = ( WindowsHost ) ConsoleApplication.LoadFromXaml( "cmdradio.WindowsHost.xml", null );
+
+            PlayerWindowModel playerWindowModel = new PlayerWindowModel(  );
+            Window playerWindow = (Window)ConsoleApplication.LoadFromXaml("cmdradio.PlayerWindow.xml", playerWindowModel);
+            Player player = new Player(  );
+            playerWindow.FindChildByName< Button >( "buttonPlay" ).OnClick += ( sender, eventArgs ) => {
+                player.cmd = new string[] { "play", ( string ) playerWindowModel.Genres[playerWindowModel.SelectedGenreIndex] };
+                player.Play();
+                //MessageBox.Show( "", "", result => { } );
+            };
+            playerWindow.FindChildByName< Button >( "buttonPause" ).OnClick += ( sender, eventArgs ) => {
+                player.ReadCmd( new string[] {"pause"} );
+            };
+            playerWindow.FindChildByName< Button >( "buttonStop" ).OnClick += ( sender, eventArgs ) => {
+                player.ReadCmd( new string[] {"stop"} );
+            };
+            playerWindow.FindChildByName< Button >( "buttonExit" ).OnClick += ( sender, eventArgs ) => {
+                ConsoleApplication.Instance.Exit( );
+            };
+            windowsHost.Show( playerWindow );
+            player.GetGenres(  ).ForEach( s => playerWindowModel.Genres.Add( s ) );
+            ConsoleApplication.Instance.Run(windowsHost);
+
+//            Player player = new Player();
+//            string[] p = { };
+//            Console.WriteLine("cmdradio v"+Player.VERSION+" by Mitrich Kasus.\nVisit http://cmdradio.org for details.\nFollow @cmdradio and +cmdradio for updates.\n");
+//            Console.WriteLine("Type 'genre' to discover recent genres, 'help' to see available commands:");
+//            if (args.Length > 0) player.ReadCmd(args);
+//            while (player.working)
+//            {
+//                player.ReadCmd(p);
+//            }
         }
     }
     public class DriverBass
@@ -104,7 +159,7 @@ namespace cmdfm
         // Exit flag
         public bool working = true;
         private bool shout = false;
-        private string[] cmd;
+        internal string[] cmd;
         private string previous;
         private string[] commongenres = { "Active rock", "Adult album alternative", "Adult contemporary music", "Adult standards / nostalgia", "Adult hits", "Album rock", "Alternative rock", "Americana", "Beautiful music", "Big band", "Bluegrass", "Blues", "Caribbean (reggae, soca, merengue, cumbia, salsa, etc.)", "Christian music", "istian rock", "temporary Christian", "Christmas music", "Classic hits", "Classic rock", "Classical", "Contemporary hit radio (CHR, top-40 / hot hits)", "Contemporary classical music", "Country", "Dance", "Easy Listening", "Eclectic", "Folk music", "Hispanic rhythmic", "Indian music", "Jazz", "Mainstream rock", "Middle of the road (MOR)", "Modern adult contemporary (Modern AC)", "Modern rock", "Oldies", "Polka", "Progressive rock", "Psychedelic rock", "Quiet Storm", "Ranchera", "Regional Mexican (Banda, corridos, ranchera, conjunto, mariachi, norteno, etc.)", "Rhythmic adult contemporary", "Rhythmic contemporary (Rhythmic Top 40)", "Rhythmic oldies", "Rock", "Rock en espanol", "Romantica (Spanish AC)", "Smooth jazz", "Soft adult contemporary (soft AC)", "Soft rock", "Soul music", "Space music", "Traditional pop music", "Tropical (salsa, merengue, cumbia, etc.)", "Urban", "Urban contemporary (mostly rap, hip hop, soul, and R&B artists)", "Urban adult contemporary (Urban AC) - R&B, soul and sometimes gospel music, without rap", "Variety", "World music" };
         private DriverBass driver;
@@ -190,7 +245,71 @@ namespace cmdfm
             Console.WriteLine("Example:");
             Console.WriteLine("  cmdradio play rock     To play rock radio");
         }
-        private void Play()
+        public void Play( string genre ) {
+            if ((now != null) && (cmd.Length == 1))
+            {
+                driver.Play(now.listen_url[0]);
+                return;
+            }
+            if (cmd.Length == 1)
+            {
+                cmd = new string[] { "play", "" };
+            }
+            previous = cmd[1];
+            if (cmd[1].Contains("://"))
+            {
+                now = new Station();
+                Console.WriteLine("Playing URL");
+                driver.Play(cmd[1]);
+                return;
+            }
+            Console.WriteLine("Looking for " + (cmd[1].Equals("") ? "random" : cmd[1]) + " stations ...");
+            Console.SetCursorPosition(0, Console.CursorTop - 1);
+            if (shout)
+            {
+                if (cmd[1] == "") cmd[1] = "random";
+                string xml = HttpReq(SHOUTCAST + "newxml.phtml?search=" + cmd[1]);
+                if (xml == "")
+                {
+                    Console.WriteLine("Not found\n");
+                    return;
+                }
+                int needle = xml.IndexOf('\n') + 1;
+                xml = xml.Insert(needle, "<root>\n") + "</root>";
+                StringReader sreader = new StringReader(xml);
+                XmlSerializer serializer = new XmlSerializer(typeof(stationlist));
+                stationlist stations = (stationlist)serializer.Deserialize(sreader);
+                sreader.Close();
+                if (stations.stations.Length == 0)
+                {
+                    Console.WriteLine("Not found\n");
+                    return;
+                }
+                Random random = new Random();
+                station sh = stations.stations[random.Next(0, stations.stations.Length)];
+                now = new Station();
+                now.bitrate = new String[] { sh.bitrate };
+                now.genre = new String[] { sh.genre };
+                now.listen_url = new String[] { SHOUTCAST + "tunein-station.pls?id=" + sh.id };
+                now.server_type = new String[] { sh.type };
+                now.server_name = new String[] { sh.name };
+                now.current_song = new String[] { sh.ct };
+                now.channels = new String[] { "" };
+                now.samplerate = new String[] { "" };
+            }
+            else
+            {
+                String json = HttpReq(SERVER_URL + "play/" + cmd[1]);
+                if (json == "") return;
+                JsonSerializer ser = new JsonSerializer();
+                Station sta = JsonConvert.DeserializeObject<Station>(json);
+                now = sta;
+            }
+            Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + " " + now.bitrate[0] + "kbit/s\n");
+            driver.Play(now.listen_url[0]);
+            Console.WriteLine("Current song: " + driver.Now());
+        }
+        public void Play()
         {
             if ((now != null) && (cmd.Length == 1))
             {
@@ -265,7 +384,8 @@ namespace cmdfm
             cmd = new string[] { "play", previous };
             Play();
         }
-        private void Pause()
+
+        public void Pause()
         {
             if (now == null)
             {
@@ -290,6 +410,27 @@ namespace cmdfm
                 Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + " " + now.bitrate[0] + "kbit/s\n" + "Current song: " + driver.Now());
             else
                 Console.WriteLine("Nothing is playing");
+        }
+        public List< String > GetGenres( string search = "" ) {
+            List<string> keygenres = new List<string>();
+            if (shout)
+            {
+                StringReader sreader = ShoutcastReq("http://yp.shoutcast.com/sbin/newxml.phtml");
+                XmlSerializer serializer = new XmlSerializer(typeof(genrelist));
+                genrelist genres = (genrelist)serializer.Deserialize(sreader);
+                sreader.Close();
+                foreach (genre g in genres.genre)
+                {
+                    keygenres.Add(g.name);
+                }
+            }
+            else {
+                string url = SERVER_URL + "genres/" + search;
+                String json = HttpReq(url);
+                if (json == "") return new List< string >();
+                keygenres = JsonConvert.DeserializeObject<List<string>>(json);
+            }
+            return keygenres;
         }
         private void Genre()
         {
