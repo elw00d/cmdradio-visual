@@ -42,12 +42,24 @@ namespace cmdfm
             }
 
             private int volume = 100;
+            
             public int Volume {
                 get { return volume; }
                 set {
                     if ( value != volume ) {
                         volume = value;
                         OnPropertyChanged( "Volume" );
+                    }
+                }
+            }
+
+            private string status;
+            public string Status {
+                get { return status; }
+                set {
+                    if ( status != value ) {
+                        status = value;
+                        OnPropertyChanged( "Status" );
                     }
                 }
             }
@@ -93,6 +105,12 @@ namespace cmdfm
                             "volume",
                             string.Format( "{0}", playerWindowModel.Volume )
                         });
+                }
+            };
+            playerWindowModel.Status = player.Status;
+            player.PropertyChanged += ( sender, eventArgs ) => {
+                if ( eventArgs.PropertyName == "Status" ) {
+                    playerWindowModel.Status = player.Status;
                 }
             };
 
@@ -174,8 +192,19 @@ namespace cmdfm
             return Bass.BASS_ChannelIsActive(channel) == BASSActive.BASS_ACTIVE_PAUSED;
         }
     }
-    public class Player
+    public class Player : INotifyPropertyChanged
     {
+        private string status = "Nothing is playing";
+        public string Status {
+            get { return status; }
+            set {
+                if ( status != value ) {
+                    status = value;
+                    OnPropertyChanged( "Status" );
+                }
+            }
+        }
+
         public const string VERSION = "0.1.3";
         public const string SERVER_URL = "http://xiph-proxy.eu01.aws.af.cm/";
         public const string SHOUTCAST = "http://yp.shoutcast.com/sbin/";
@@ -285,10 +314,12 @@ namespace cmdfm
             {
                 now = new Station();
                 //Console.WriteLine("Playing URL");
+                Status = "Playing URL";
                 driver.Play(cmd[1]);
                 return;
             }
             //Console.WriteLine("Looking for " + (cmd[1].Equals("") ? "random" : cmd[1]) + " stations ...");
+            Status = "Looking for " + ( cmd[ 1 ].Equals( "" ) ? "random" : cmd[ 1 ] ) + " stations ...";
             //Console.SetCursorPosition(0, Console.CursorTop - 1);
             if (shout)
             {
@@ -297,6 +328,7 @@ namespace cmdfm
                 if (xml == "")
                 {
                     //Console.WriteLine("Not found\n");
+                    Status = "Not found";
                     return;
                 }
                 int needle = xml.IndexOf('\n') + 1;
@@ -308,6 +340,7 @@ namespace cmdfm
                 if (stations.stations.Length == 0)
                 {
                     //Console.WriteLine("Not found\n");
+                    Status = "Not found";
                     return;
                 }
                 Random random = new Random();
@@ -331,13 +364,14 @@ namespace cmdfm
                 now = sta;
             }
             //Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> "+now.server_type[0]+" "+now.bitrate[0]+"kbit/s\n");
+            Status = "Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + " " + now.bitrate[0] + "kbit/s\n";
             driver.Play(now.listen_url[0]);
             //Console.WriteLine("Current song: "+driver.Now());
         }
         private void Skip()
         {
-            if (now == null)
-            {
+            if (now == null) {
+                Status = "Nothing is playing";
                 //Console.WriteLine("Nothing is playing");
                 return;
             }
@@ -352,6 +386,7 @@ namespace cmdfm
                 //Console.WriteLine("Nothing is playing");
                 return;
             }
+            Status = "Nothing is playing";
             driver.Pause();
         }
         private void Stop()
@@ -361,6 +396,7 @@ namespace cmdfm
                 //Console.WriteLine("Nothing is playing");
                 return;
             }
+            Status = "Nothing is playing";
             driver.Stop();
             now = null;
         }
@@ -488,6 +524,13 @@ namespace cmdfm
             data.Close();
             reader.Close();
             return s;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged( string propertyName ) {
+            PropertyChangedEventHandler handler = PropertyChanged;
+            if ( handler != null ) handler( this, new PropertyChangedEventArgs( propertyName ) );
         }
     }
     public class Station
