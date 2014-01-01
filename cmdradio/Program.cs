@@ -41,6 +41,17 @@ namespace cmdfm
                 }
             }
 
+            private int volume = 100;
+            public int Volume {
+                get { return volume; }
+                set {
+                    if ( value != volume ) {
+                        volume = value;
+                        OnPropertyChanged( "Volume" );
+                    }
+                }
+            }
+
             public event PropertyChangedEventHandler PropertyChanged;
 
             protected virtual void OnPropertyChanged( string propertyName ) {
@@ -71,7 +82,20 @@ namespace cmdfm
                 ConsoleApplication.Instance.Exit( );
             };
             windowsHost.Show( playerWindow );
-            player.GetGenres(  ).ForEach( s => playerWindowModel.Genres.Add( s ) );
+            foreach ( string s in player.GetGenres( )) {
+                playerWindowModel.Genres.Add( s );
+            }
+
+            playerWindowModel.PropertyChanged += ( sender, eventArgs ) => {
+                if ( eventArgs.PropertyName == "Volume" ) {
+                    player.ReadCmd( new string[]
+                        {
+                            "volume",
+                            string.Format( "{0}", playerWindowModel.Volume )
+                        });
+                }
+            };
+
             ConsoleApplication.Instance.Run(windowsHost);
 
 //            Player player = new Player();
@@ -107,7 +131,7 @@ namespace cmdfm
             }
             catch
             {
-                Console.WriteLine("Stream error: " + Bass.BASS_ErrorGetCode());
+                //Console.WriteLine("Stream error: " + Bass.BASS_ErrorGetCode());
                 return false;
             }
             if (channel != 0)
@@ -117,7 +141,7 @@ namespace cmdfm
                 }
             else
                 {
-                    Console.WriteLine("Stream error: " + Bass.BASS_ErrorGetCode());
+                    //Console.WriteLine("Stream error: " + Bass.BASS_ErrorGetCode());
                     return false;
                 }
         }
@@ -245,70 +269,6 @@ namespace cmdfm
             Console.WriteLine("Example:");
             Console.WriteLine("  cmdradio play rock     To play rock radio");
         }
-        public void Play( string genre ) {
-            if ((now != null) && (cmd.Length == 1))
-            {
-                driver.Play(now.listen_url[0]);
-                return;
-            }
-            if (cmd.Length == 1)
-            {
-                cmd = new string[] { "play", "" };
-            }
-            previous = cmd[1];
-            if (cmd[1].Contains("://"))
-            {
-                now = new Station();
-                Console.WriteLine("Playing URL");
-                driver.Play(cmd[1]);
-                return;
-            }
-            Console.WriteLine("Looking for " + (cmd[1].Equals("") ? "random" : cmd[1]) + " stations ...");
-            Console.SetCursorPosition(0, Console.CursorTop - 1);
-            if (shout)
-            {
-                if (cmd[1] == "") cmd[1] = "random";
-                string xml = HttpReq(SHOUTCAST + "newxml.phtml?search=" + cmd[1]);
-                if (xml == "")
-                {
-                    Console.WriteLine("Not found\n");
-                    return;
-                }
-                int needle = xml.IndexOf('\n') + 1;
-                xml = xml.Insert(needle, "<root>\n") + "</root>";
-                StringReader sreader = new StringReader(xml);
-                XmlSerializer serializer = new XmlSerializer(typeof(stationlist));
-                stationlist stations = (stationlist)serializer.Deserialize(sreader);
-                sreader.Close();
-                if (stations.stations.Length == 0)
-                {
-                    Console.WriteLine("Not found\n");
-                    return;
-                }
-                Random random = new Random();
-                station sh = stations.stations[random.Next(0, stations.stations.Length)];
-                now = new Station();
-                now.bitrate = new String[] { sh.bitrate };
-                now.genre = new String[] { sh.genre };
-                now.listen_url = new String[] { SHOUTCAST + "tunein-station.pls?id=" + sh.id };
-                now.server_type = new String[] { sh.type };
-                now.server_name = new String[] { sh.name };
-                now.current_song = new String[] { sh.ct };
-                now.channels = new String[] { "" };
-                now.samplerate = new String[] { "" };
-            }
-            else
-            {
-                String json = HttpReq(SERVER_URL + "play/" + cmd[1]);
-                if (json == "") return;
-                JsonSerializer ser = new JsonSerializer();
-                Station sta = JsonConvert.DeserializeObject<Station>(json);
-                now = sta;
-            }
-            Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + " " + now.bitrate[0] + "kbit/s\n");
-            driver.Play(now.listen_url[0]);
-            Console.WriteLine("Current song: " + driver.Now());
-        }
         public void Play()
         {
             if ((now != null) && (cmd.Length == 1))
@@ -324,19 +284,19 @@ namespace cmdfm
             if (cmd[1].Contains("://"))
             {
                 now = new Station();
-                Console.WriteLine("Playing URL");
+                //Console.WriteLine("Playing URL");
                 driver.Play(cmd[1]);
                 return;
             }
-            Console.WriteLine("Looking for " + (cmd[1].Equals("") ? "random" : cmd[1]) + " stations ...");
-            Console.SetCursorPosition(0, Console.CursorTop - 1);
+            //Console.WriteLine("Looking for " + (cmd[1].Equals("") ? "random" : cmd[1]) + " stations ...");
+            //Console.SetCursorPosition(0, Console.CursorTop - 1);
             if (shout)
             {
                 if (cmd[1] == "") cmd[1] = "random";
                 string xml = HttpReq(SHOUTCAST + "newxml.phtml?search=" + cmd[1]);
                 if (xml == "")
                 {
-                    Console.WriteLine("Not found\n");
+                    //Console.WriteLine("Not found\n");
                     return;
                 }
                 int needle = xml.IndexOf('\n') + 1;
@@ -347,7 +307,7 @@ namespace cmdfm
                 sreader.Close();
                 if (stations.stations.Length == 0)
                 {
-                    Console.WriteLine("Not found\n");
+                    //Console.WriteLine("Not found\n");
                     return;
                 }
                 Random random = new Random();
@@ -370,15 +330,15 @@ namespace cmdfm
                 Station sta = JsonConvert.DeserializeObject<Station>(json);
                 now = sta;
             }
-            Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> "+now.server_type[0]+" "+now.bitrate[0]+"kbit/s\n");
+            //Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> "+now.server_type[0]+" "+now.bitrate[0]+"kbit/s\n");
             driver.Play(now.listen_url[0]);
-            Console.WriteLine("Current song: "+driver.Now());
+            //Console.WriteLine("Current song: "+driver.Now());
         }
         private void Skip()
         {
             if (now == null)
             {
-                Console.WriteLine("Nothing is playing");
+                //Console.WriteLine("Nothing is playing");
                 return;
             }
             cmd = new string[] { "play", previous };
@@ -389,7 +349,7 @@ namespace cmdfm
         {
             if (now == null)
             {
-                Console.WriteLine("Nothing is playing");
+                //Console.WriteLine("Nothing is playing");
                 return;
             }
             driver.Pause();
@@ -398,7 +358,7 @@ namespace cmdfm
         {
             if (now == null)
             {
-                Console.WriteLine("Nothing is playing");
+                //Console.WriteLine("Nothing is playing");
                 return;
             }
             driver.Stop();
@@ -467,7 +427,7 @@ namespace cmdfm
             int vol = 0;
             if (cmd.Length == 1)
             {
-                Console.WriteLine("Volume value: "+driver.vol);
+                //Console.WriteLine("Volume value: "+driver.vol);
                 return;
             }
             try
@@ -486,12 +446,12 @@ namespace cmdfm
             {
                 if ((vol <= 100) && (vol >= 0))
                 {
-                    Console.WriteLine("Volume value changed to {0} %", vol);
+                    //Console.WriteLine("Volume value changed to {0} %", vol);
                     driver.Volume(vol);
                 }
                 else
                 {
-                    Console.WriteLine("Volume can be from 0 to 100.");
+                    //Console.WriteLine("Volume can be from 0 to 100.");
                 }
             }
         }
@@ -520,7 +480,7 @@ namespace cmdfm
             }
             catch (WebException e)
             {
-                Console.WriteLine("Cannot find request data                   ");
+                //Console.WriteLine("Cannot find request data                   ");
                 return "";
             }
             StreamReader reader = new StreamReader(data);
