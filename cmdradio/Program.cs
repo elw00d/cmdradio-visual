@@ -1,24 +1,42 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Text;
-using System.Media;
 using System.IO;
 using System.Net;
-using System.Net.Sockets;
 using System.Linq;
+using System.Threading;
 using System.Xml.Serialization;
+using Binding.Converters;
 using Binding.Observables;
 using ConsoleFramework;
 using ConsoleFramework.Controls;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Un4seen.Bass;
 
-namespace cmdfm
+namespace cmdradio
 {
+    /// <summary>
+    /// For empty status string returns Visibility.Collapsed, otherwise returns Visibility.Visible.
+    /// </summary>
+    public class StringToTextBlockVisibilityConverter : IBindingConverter
+    {
+        public Type FirstType { get { return typeof(String); } }
+        public Type SecondType { get { return typeof(Visibility); } }
+
+        public ConversionResult Convert(object first)
+        {
+            if (string.IsNullOrEmpty((string)first))
+                return new ConversionResult(Visibility.Collapsed);
+            return new ConversionResult(Visibility.Visible);
+        }
+
+        public ConversionResult ConvertBack(object second)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     class Program
     {
         class PlayerWindowModel : INotifyPropertyChanged
@@ -64,11 +82,47 @@ namespace cmdfm
                 }
             }
 
+            private string status2;
+            public string Status2 {
+                get { return status2; }
+                set {
+                    if ( status2 != value ) {
+                        status2 = value;
+                        OnPropertyChanged( "Status2" );
+                    }
+                }
+            }
+
+            private string status3;
+            public string Status3 {
+                get { return status3; }
+                set {
+                    if ( status3 != value ) {
+                        status3 = value;
+                        OnPropertyChanged( "Status3" );
+                    }
+                }
+            }
+
             public event PropertyChangedEventHandler PropertyChanged;
 
             protected virtual void OnPropertyChanged( string propertyName ) {
                 PropertyChangedEventHandler handler = PropertyChanged;
                 if ( handler != null ) handler( this, new PropertyChangedEventArgs( propertyName ) );
+            }
+        }
+
+        private static void splitStatus( String status, PlayerWindowModel model ) {
+            string[ ] strings = status.Split( '\n' );
+            model.Status = model.Status2 = model.Status3 = string.Empty;
+            if ( strings.Length > 0 ) {
+                model.Status = strings[ 0 ];
+            }
+            if ( strings.Length > 1 ) {
+                model.Status2 = strings[ 1 ];
+            }
+            if ( strings.Length > 2 ) {
+                model.Status3 = strings[ 2 ];
             }
         }
 
@@ -80,15 +134,16 @@ namespace cmdfm
             Window playerWindow = (Window)ConsoleApplication.LoadFromXaml("cmdradio.PlayerWindow.xml", playerWindowModel);
             Player player = new Player(  );
             playerWindow.FindChildByName< Button >( "buttonPlay" ).OnClick += ( sender, eventArgs ) => {
-                player.cmd = new string[] { "play", ( string ) playerWindowModel.Genres[playerWindowModel.SelectedGenreIndex] };
-                player.Play();
-                //MessageBox.Show( "", "", result => { } );
+                new Thread( (( ) => {
+                    player.cmd = new string[] { "play", (string)playerWindowModel.Genres[playerWindowModel.SelectedGenreIndex] };
+                    player.Play();
+                }) ).Start();
             };
             playerWindow.FindChildByName< Button >( "buttonPause" ).OnClick += ( sender, eventArgs ) => {
-                player.ReadCmd( new string[] {"pause"} );
+                new Thread( () => player.ReadCmd( new string[] {"pause"} ) ).Start();
             };
             playerWindow.FindChildByName< Button >( "buttonStop" ).OnClick += ( sender, eventArgs ) => {
-                player.ReadCmd( new string[] {"stop"} );
+                new Thread(() => player.ReadCmd(new string[] { "stop" })).Start();
             };
             playerWindow.FindChildByName< Button >( "buttonExit" ).OnClick += ( sender, eventArgs ) => {
                 ConsoleApplication.Instance.Exit( );
@@ -107,10 +162,10 @@ namespace cmdfm
                         });
                 }
             };
-            playerWindowModel.Status = player.Status;
+            splitStatus(player.Status, playerWindowModel);
             player.PropertyChanged += ( sender, eventArgs ) => {
                 if ( eventArgs.PropertyName == "Status" ) {
-                    playerWindowModel.Status = player.Status;
+                    splitStatus(player.Status, playerWindowModel);
                 }
             };
 
@@ -364,7 +419,7 @@ namespace cmdfm
                 now = sta;
             }
             //Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> "+now.server_type[0]+" "+now.bitrate[0]+"kbit/s\n");
-            Status = "Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + " " + now.bitrate[0] + "kbit/s\n";
+            Status = "Playing: " + now.server_name[0] + "\n[" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + "\n" + now.bitrate[0] + "kbit/s\n";
             driver.Play(now.listen_url[0]);
             //Console.WriteLine("Current song: "+driver.Now());
         }

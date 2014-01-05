@@ -1,33 +1,44 @@
 ﻿<Window Title="cmdradio" xmlns:x="http://consoleframework.org/xaml.xsd"
-        xmlns:cmdradio="clr-namespace:cmdradio;assembly=cmdradio"
-        MaxWidth="80">
+        xmlns:cmdradio="clr-namespace:cmdradio;assembly=cmdradio">
+  <Window.Resources>
+    <cmdradio:StringToTextBlockVisibilityConverter x:Key="1" x:Id="converter"/>
+  </Window.Resources>
   <Panel>
-    <Panel Orientation="Horizontal">
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition/>
+      </Grid.RowDefinitions>
+      
       <GroupBox Title="Genres">
         <Panel Orientation="Vertical">
           <ComboBox ShownItemsCount="20"
                     MaxWidth="30"
                     SelectedItemIndex="{Binding Path=SelectedGenreIndex, Mode=OneWayToSource}"
-                    Items="{Binding Path=Genres, Mode=OneWay}">
-          </ComboBox>
+                    Items="{Binding Path=Genres, Mode=OneWay}"/>
 
           <Panel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,1,0,0">
-            <TextBlock Text="Volume"></TextBlock>
+            <TextBlock Text="Volume"/>
             <cmdradio:VolumeControl Percent="{Binding Path=Volume}"
-                                    Margin="1,0,0,0" Width="20" Height="1">
-            </cmdradio:VolumeControl>
+                                    Margin="1,0,0,0" Width="20" Height="1"/>
           </Panel>
         </Panel>
       </GroupBox>
-      <GroupBox Title="Control">
+      
+      <GroupBox Title="Control" HorizontalAlignment="Right">
         <Panel Margin="1">
-          <Button Name="buttonPlay" Caption="Play" HorizontalAlignment="Stretch"></Button>
-          <Button Name="buttonPause" Caption="Pause" HorizontalAlignment="Stretch"></Button>
-          <Button Name="buttonStop" Caption="Stop" HorizontalAlignment="Stretch"></Button>
-          <Button Name="buttonExit" Caption="Exit" HorizontalAlignment="Stretch"></Button>
+          <Button Name="buttonPlay" Caption="Play" HorizontalAlignment="Stretch"/>
+          <Button Name="buttonPause" Caption="Pause" HorizontalAlignment="Stretch"/>
+          <Button Name="buttonStop" Caption="Stop" HorizontalAlignment="Stretch"/>
+          <Button Name="buttonExit" Caption="Exit" HorizontalAlignment="Stretch"/>
         </Panel>
       </GroupBox>
-    </Panel>
-    <TextBlock HorizontalAlignment="Stretch" Text="{Binding Path=Status, Mode=OneWay}"></TextBlock>
+    </Grid>
+    <TextBlock Visibility="{Binding Path=Status, Mode=OneWay, Converter={Ref converter}}" Text="{Binding Path=Status, Mode=OneWay}"/>
+    <TextBlock Visibility="{Binding Path=Status2, Mode=OneWay, Converter={Ref converter}}" Text="{Binding Path=Status2, Mode=OneWay}"/>
+    <TextBlock Visibility="{Binding Path=Status3, Mode=OneWay, Converter={Ref converter}}" Text="{Binding Path=Status3, Mode=OneWay}"/>
   </Panel>
 </Window>
