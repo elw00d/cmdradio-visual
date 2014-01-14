@@ -107,8 +107,16 @@ namespace cmdradio
             public event PropertyChangedEventHandler PropertyChanged;
 
             protected virtual void OnPropertyChanged( string propertyName ) {
-                PropertyChangedEventHandler handler = PropertyChanged;
-                if ( handler != null ) handler( this, new PropertyChangedEventArgs( propertyName ) );
+                if ( ConsoleApplication.Instance.IsUiThread( ) ) {
+                    PropertyChangedEventHandler handler = PropertyChanged;
+                    if ( handler != null ) handler( this, new PropertyChangedEventArgs( propertyName ) );
+                } else {
+                    Action action = new Action(( ) => {
+                        PropertyChangedEventHandler handler = PropertyChanged;
+                        if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
+                    });
+                    ConsoleApplication.Instance.Invoke( action );
+                }
             }
         }
 
@@ -133,6 +141,7 @@ namespace cmdradio
             PlayerWindowModel playerWindowModel = new PlayerWindowModel(  );
             Window playerWindow = (Window)ConsoleApplication.LoadFromXaml("cmdradio.PlayerWindow.xml", playerWindowModel);
             Player player = new Player(  );
+            player.ReadCmd(new string[] { "shoutcast" });
             playerWindow.FindChildByName< Button >( "buttonPlay" ).OnClick += ( sender, eventArgs ) => {
                 new Thread( (( ) => {
                     player.cmd = new string[] { "play", (string)playerWindowModel.Genres[playerWindowModel.SelectedGenreIndex] };
