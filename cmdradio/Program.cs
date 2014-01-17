@@ -115,7 +115,7 @@ namespace cmdradio
                         PropertyChangedEventHandler handler = PropertyChanged;
                         if (handler != null) handler(this, new PropertyChangedEventArgs(propertyName));
                     });
-                    ConsoleApplication.Instance.Invoke( action );
+                    ConsoleApplication.Instance.Post( action );
                 }
             }
         }
