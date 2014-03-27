@@ -42,7 +42,7 @@ namespace cmdradio
         class PlayerWindowModel : INotifyPropertyChanged
         {
             private ObservableList genres = new ObservableList( new ArrayList() );
-            public IObservableList Genres {
+            public ObservableList Genres {
                 get {
                     return genres;
                 }
@@ -141,7 +141,7 @@ namespace cmdradio
             PlayerWindowModel playerWindowModel = new PlayerWindowModel(  );
             Window playerWindow = (Window)ConsoleApplication.LoadFromXaml("cmdradio.PlayerWindow.xml", playerWindowModel);
             Player player = new Player(  );
-            player.ReadCmd(new string[] { "shoutcast" });
+            //player.ReadCmd(new string[] { "shoutcast" });
             playerWindow.FindChildByName< Button >( "buttonPlay" ).OnClick += ( sender, eventArgs ) => {
                 new Thread( (( ) => {
                     player.cmd = new string[] { "play", (string)playerWindowModel.Genres[playerWindowModel.SelectedGenreIndex] };
