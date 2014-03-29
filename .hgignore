@@ -2,3 +2,4 @@ syntax: glob
 cmdradio/bin/
 cmdradio.suo
 cmdradio/obj/
+cmdradio-visual-mono.userprefs
