@@ -53,22 +53,24 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\3rd-party\bass-x86\bass.dll">
-      <Link>bass.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <EmbeddedResource Include="PlayerWindow.xml" />
     <EmbeddedResource Include="WindowsHost.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ConsoleFramework\Binding\Binding.csproj">
+    <ProjectReference Include="..\consoleframework\Binding\Binding.csproj">
       <Project>{E1CD529B-E3F1-4660-AA4F-1670E0992553}</Project>
       <Name>Binding</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\ConsoleFramework\ConsoleFramework\ConsoleFramework.csproj">
+    <ProjectReference Include="..\consoleframework\ConsoleFramework\ConsoleFramework.csproj">
       <Project>{2A59C284-2995-4F37-8D65-411C25C85493}</Project>
       <Name>ConsoleFramework</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\3rd-party\native\bass-win32-x86\bass.dll">
+      <Link>bass.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

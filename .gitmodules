@@ -1,0 +1,3 @@
+[submodule "consoleframework"]
+	path = consoleframework
+	url = https://github.com/elw00d/consoleframework.git

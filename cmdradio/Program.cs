@@ -48,8 +48,8 @@ namespace cmdradio
                 }
             }
 
-            private int selectedGenreIndex;
-            public int SelectedGenreIndex {
+            private int? selectedGenreIndex;
+            public int? SelectedGenreIndex {
                 get { return selectedGenreIndex; }
                 set {
                     if ( value != selectedGenreIndex ) {
@@ -143,10 +143,14 @@ namespace cmdradio
             Player player = new Player(  );
             //player.ReadCmd(new string[] { "shoutcast" });
             playerWindow.FindChildByName< Button >( "buttonPlay" ).OnClick += ( sender, eventArgs ) => {
-                new Thread( (( ) => {
-                    player.cmd = new string[] { "play", (string)playerWindowModel.Genres[playerWindowModel.SelectedGenreIndex] };
-                    player.Play();
-                }) ).Start();
+                int? selectedGenreIndex = playerWindowModel.SelectedGenreIndex;
+                if ( selectedGenreIndex.HasValue ) {
+                    new Thread( ( ( ) => {
+                        player.cmd = new string[ ]
+                            { "play", ( string ) playerWindowModel.Genres[ selectedGenreIndex.Value ] };
+                        player.Play( );
+                    } ) ).Start( );
+                }
             };
             playerWindow.FindChildByName< Button >( "buttonPause" ).OnClick += ( sender, eventArgs ) => {
                 new Thread( () => player.ReadCmd( new string[] {"pause"} ) ).Start();
