@@ -15,7 +15,7 @@ namespace cmdradio
         private bool capturing = false;
 
         private void onMouseDown(object sender, MouseEventArgs e) {
-            if ( e.LeftButton == MouseButtonState.Pressed ) {
+            if ( e.LeftButton == MouseButtonState.Pressed && !capturing ) {
                 ConsoleApplication.Instance.BeginCaptureInput(this);
                 capturing = true;
                 Percent = ( int ) ( 100*(e.GetPosition( this ).X + 1)*1.0/this.ActualWidth );
