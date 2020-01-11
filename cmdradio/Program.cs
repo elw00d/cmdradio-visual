@@ -274,7 +274,7 @@ namespace cmdradio
         }
 
         public const string VERSION = "0.1.3";
-        public const string SERVER_URL = "http://xiph-proxy.eu01.aws.af.cm/";
+        public const string SERVER_URL = "http://dir-test.xiph.org/";
         public const string SHOUTCAST = "http://yp.shoutcast.com/sbin/";
         public Station now;
         // Exit flag
@@ -414,25 +414,25 @@ namespace cmdradio
                 Random random = new Random();
                 station sh = stations.stations[random.Next(0, stations.stations.Length)];
                 now = new Station();
-                now.bitrate = new String[] { sh.bitrate };
+                now.bitrate = int.Parse(sh.bitrate);
                 now.genre = new String[] { sh.genre };
                 now.listen_url = new String[] { SHOUTCAST + "tunein-station.pls?id=" + sh.id };
-                now.server_type = new String[] { sh.type };
-                now.server_name = new String[] { sh.name };
-                now.current_song = new String[] { sh.ct };
-                now.channels = new String[] { "" };
-                now.samplerate = new String[] { "" };
+                now.server_type = sh.type;
+                now.server_name = sh.name;
+                now.current_song = sh.ct;
+                now.channels = 0;
+                now.samplerate = 0;
             }
             else
             {
-                String json = HttpReq(SERVER_URL + "play/" + cmd[1]);
+                String json = HttpReq(SERVER_URL + "streams/?genre=" + cmd[1]);
                 if (json == "") return;
                 JsonSerializer ser = new JsonSerializer();
-                Station sta = JsonConvert.DeserializeObject<Station>(json);
+                Station sta = JsonConvert.DeserializeObject<StreamsResponse>(json).stations[0];
                 now = sta;
             }
             //Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> "+now.server_type[0]+" "+now.bitrate[0]+"kbit/s\n");
-            Status = "Playing: " + now.server_name[0] + "\n[" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + "\n" + now.bitrate[0] + "kbit/s\n";
+            Status = "Playing: " + now.server_name[0] + "\n[" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + "\n" + now.bitrate + "kbit/s\n";
             driver.Play(now.listen_url[0]);
             //Console.WriteLine("Current song: "+driver.Now());
         }
@@ -471,7 +471,7 @@ namespace cmdradio
         private void Now()
         {
             if (now != null)
-                Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + " " + now.bitrate[0] + "kbit/s\n" + "Current song: " + driver.Now());
+                Console.WriteLine("Playing: " + now.server_name[0] + " [" + now.listen_url[0] + "]" + " <" + now.genre[0] + "> " + now.server_type[0] + " " + now.bitrate + "kbit/s\n" + "Current song: " + driver.Now());
             else
                 Console.WriteLine("Nothing is playing");
         }
@@ -492,7 +492,7 @@ namespace cmdradio
                 string url = SERVER_URL + "genres/" + search;
                 String json = HttpReq(url);
                 if (json == "") return new List< string >();
-                keygenres = JsonConvert.DeserializeObject<List<string>>(json);
+                keygenres = JsonConvert.DeserializeObject<List<genre2>>(json).Select(t => t.name).ToList();
             }
             return keygenres;
         }
@@ -601,16 +601,28 @@ namespace cmdradio
             if ( handler != null ) handler( this, new PropertyChangedEventArgs( propertyName ) );
         }
     }
+
+    public class StreamsResponse {
+        [JsonProperty("streams")]
+        public List<Station> stations;
+    }
+    
     public class Station
     {
-        public String[] server_name;
+        [JsonProperty("stream_name")]
+        public String server_name;
+        [JsonProperty("listenurls")]
         public String[] listen_url;
-        public String[] server_type;
-        public String[] bitrate;
-        public String[] channels;
-        public String[] samplerate;
+        [JsonProperty("stream_type")]
+        public String server_type;
+        public int? bitrate;
+        public int? channels;
+        public int? samplerate;
+        [JsonProperty("genres")]
         public String[] genre;
-        public String[] current_song;
+        [JsonProperty("songname")]
+        public String current_song;
+        [JsonProperty("id")]
         public String _id;
     }
     [Serializable]
@@ -655,4 +667,9 @@ namespace cmdradio
         public string lc;
     }
 
+    [JsonObject]
+    public class genre2 {
+        [JsonProperty("val")]
+        public string name;
+    }
 }
