@@ -1,4 +1,4 @@
-=== cmdradio-visual
+### cmdradio-visual
 
 This is simple UI for cmdradio project (dead now https://habr.com/ru/post/196612/)
 
